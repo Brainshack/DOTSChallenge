@@ -11,3 +11,5 @@ So I have basically now done a lot of work. I got rid of All BlobAssets and pure
 For Rendering I no longer render a Mesh Per Cell, but instead only have one mesh wit a texture that gets updated each frame.
 
 I used the profiler to find a lot of small and big gains. Working with managed data introduced some Lag Spikes due to Garbage Collection, which I got rid of by using other APIs on the Texture2D Class to directly write into the Color Data Array, which fortunately is a NativeArray which can be accessed in Jobs. Right Now My Code seems to be at least 10x faster then it was yesterday, but also, the simulation is acting weird. I might have broken it.
+
+I added some tests for my simulation code, to figure out why my simulation was acting weird. I found a small bug in my code when determining the neighbors of a cell which lead to weird results. Now the simulation seems to be great. Also the performance is pretty dope, considering that I haven't really put much effort into optimizing data structures etc.

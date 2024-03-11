@@ -1,0 +1,11 @@
+#grid-size Label {
+    max-width: 50px;
+    width: 50px;
+    min-width: 50px;
+}
+
+#camera-zoom Label {
+    max-width: 50px;
+    width: 50px;
+    min-width: 50px;
+}
