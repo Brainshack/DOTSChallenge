@@ -14,7 +14,7 @@ namespace GameOfLife.Authoring
         public float Padding;
         public uint Seed;
         [Range(1,100)]
-        public uint RandomThreshold;
+        public int RandomThreshold;
         
         public class GridBaker : Baker<GridAuthoring>
         {

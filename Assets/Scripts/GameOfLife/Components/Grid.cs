@@ -10,6 +10,6 @@ namespace GameOfLife.Components
         public int2 Dimensions;
         public float Padding;
         public uint Seed;
-        public uint RandomSpawnThreshold;
+        public int RandomSpawnThreshold;
     }
 }

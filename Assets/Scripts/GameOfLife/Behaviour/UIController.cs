@@ -33,20 +33,25 @@ namespace GameOfLife.Behaviour
             gridSizeElement.value = _grid.Dimensions.x.ToString();
             gridSizeElement.RegisterCallback<ChangeEvent<string>>(GridSizeChanged);
             
+            var seedElement = controlls.rootVisualElement.Q<TextField>("random-seed");
+            seedElement.value = _grid.Seed.ToString();
+            seedElement.RegisterCallback<ChangeEvent<string>>(SeedChanged);
+            
             var totalCellsElement = controlls.rootVisualElement.Q<Label>("total-cells");
             totalCellsElement.text = (_grid.Dimensions.x * _grid.Dimensions.y).ToString();
-
+            
+            
             controlls.rootVisualElement.Q<Button>("add-grid-size").RegisterCallback<ClickEvent>(_ =>
             {
-                _grid.Dimensions.x++;
-                _grid.Dimensions.y++;
+                _grid.Dimensions.x-=256;
+                _grid.Dimensions.y-=256;
                 UpdateEntity();
             });
             
             controlls.rootVisualElement.Q<Button>("subtract-grid-size").RegisterCallback<ClickEvent>(_ =>
             {
-                _grid.Dimensions.x++;
-                _grid.Dimensions.y++;
+                _grid.Dimensions.x+=256;
+                _grid.Dimensions.y+=256;
                 UpdateEntity();
             });
             
@@ -57,20 +62,38 @@ namespace GameOfLife.Behaviour
                 UpdateEntity();
             });
             
-            controlls.rootVisualElement.Q<Button>("center-camera").RegisterCallback<ClickEvent>(_ =>
+            controlls.rootVisualElement.Q<Button>("half-grid-size").RegisterCallback<ClickEvent>(_ =>
             {
-                Camera.main.transform.position = new Vector3(_grid.Dimensions.x / 2, _grid.Dimensions.y / 2, -10);
+                _grid.Dimensions.x /= 2;
+                _grid.Dimensions.y /= 2;
+                UpdateEntity();
+            });
+            
+            controlls.rootVisualElement.Q<Button>("quit-button").RegisterCallback<ClickEvent>(_ =>
+            {
+                Application.Quit();
             });
 
-            var cameraZoomEl = controlls.rootVisualElement.Q<Slider>("camera-zoom");
-            cameraZoomEl.value = Camera.main.orthographicSize;
-            cameraZoomEl.RegisterCallback<ChangeEvent<float>>(evt => Camera.main.orthographicSize = evt.newValue);
+            var cameraZoomEl = controlls.rootVisualElement.Q<SliderInt>("density");
+            cameraZoomEl.value = 100 - _grid.RandomSpawnThreshold;
+            cameraZoomEl.RegisterCallback<ChangeEvent<int>>(evt =>
+            {
+                _grid.RandomSpawnThreshold = Math.Clamp(100 - evt.newValue, 1,100);
+                Debug.Log(_grid.RandomSpawnThreshold);
+                UpdateEntity();
+            });
             
             var pauseContainer = controlls.rootVisualElement.Q<VisualElement>("pause-container");
             pauseContainer.visible = pause;
             
             var restartButton = controlls.rootVisualElement.Q<Button>("restart-button");
             restartButton.RegisterCallback<ClickEvent>(_ => _entitymanager.AddComponent<RebuildGrid>(_gridEntity));
+        }
+
+        private void SeedChanged(ChangeEvent<string> evt)
+        {
+            _grid.Seed = UInt32.Parse(evt.newValue);
+            UpdateEntity();
         }
 
         private void GridSizeChanged(ChangeEvent<string> evt)

@@ -1,23 +1,27 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
     <Style src="project://database/Assets/UXML/controls.uss?fileID=7433441132597879392&amp;guid=bbc75d2a58b029841bb962421427a355&amp;type=3#controls" />
     <ui:VisualElement name="VisualElement" style="flex-grow: 1; flex-direction: row; flex-wrap: wrap; width: auto; height: auto; max-height: initial; background-color: rgba(255, 255, 255, 0); max-width: initial;">
-        <ui:VisualElement style="flex-grow: 1; max-height: 250px; max-width: 200px; background-color: rgb(6, 255, 122);">
+        <ui:VisualElement style="flex-grow: 1; max-height: 350px; max-width: 250px; background-color: rgb(6, 255, 122);">
             <ui:TextField picking-mode="Ignore" label="Size" value="filler text" name="grid-size" />
+            <ui:TextField picking-mode="Ignore" label="Seed" value="filler text" name="random-seed" />
             <ui:VisualElement style="flex-grow: 1; height: 50px; max-height: 50px;">
                 <ui:Label tabindex="-1" text="Total Cells: 1238" parse-escape-sequences="true" display-tooltip-when-elided="true" name="total-cells" />
             </ui:VisualElement>
             <ui:VisualElement style="flex-grow: 1; width: auto; flex-direction: row; flex-wrap: nowrap;">
-                <ui:Button text="+" parse-escape-sequences="true" display-tooltip-when-elided="true" name="add-grid-size" style="flex-grow: 1;" />
-                <ui:Button text="-" parse-escape-sequences="true" display-tooltip-when-elided="true" name="subtract-grid-size" style="flex-grow: 1;" />
-                <ui:Button text="*2&#10;" parse-escape-sequences="true" display-tooltip-when-elided="true" name="double-grid-size" style="flex-grow: 1;" />
+                <ui:Button text="+ 256" parse-escape-sequences="true" display-tooltip-when-elided="true" name="add-grid-size" style="flex-grow: 1;" />
+                <ui:Button text="- 256" parse-escape-sequences="true" display-tooltip-when-elided="true" name="subtract-grid-size" style="flex-grow: 1;" />
+                <ui:Button text="*2" parse-escape-sequences="true" display-tooltip-when-elided="true" name="double-grid-size" style="flex-grow: 1;" />
+                <ui:Button text="/2" parse-escape-sequences="true" display-tooltip-when-elided="true" name="half-grid-size" style="flex-grow: 1;" />
             </ui:VisualElement>
             <ui:VisualElement style="flex-grow: 1;">
-                <ui:Slider label="Zoom" high-value="1000" name="camera-zoom" />
-                <ui:Button text="Center Camera" parse-escape-sequences="true" display-tooltip-when-elided="true" name="center-camera" style="flex-grow: 1;" />
+                <ui:SliderInt label="Density" high-value="100" name="density" />
+            </ui:VisualElement>
+            <ui:VisualElement  style="flex-grow: 1;">
+                <ui:Button text="Quit" parse-escape-sequences="true" display-tooltip-when-elided="true" name="quit-button" style="flex-grow: 1;" />
             </ui:VisualElement>
             <ui:VisualElement name="pause-container" style="flex-grow: 1;">
                 <ui:Label tabindex="-1" text="Game Paused" parse-escape-sequences="true" display-tooltip-when-elided="true" name="pause-indicator" />
-                <ui:Button text="Restart Game" parse-escape-sequences="true" display-tooltip-when-elided="true" name="restart-button" />
+                <ui:Button text="Restart Sim" parse-escape-sequences="true" display-tooltip-when-elided="true" name="restart-button" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
