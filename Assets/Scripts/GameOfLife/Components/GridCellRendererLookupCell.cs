@@ -4,7 +4,6 @@ namespace GameOfLife.Components
 {
     public struct GridCellRendererLookupCell
     {
-        public Entity RendererEntity;
         public Entity CellEntity;
     }
     

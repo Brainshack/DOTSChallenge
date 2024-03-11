@@ -1,71 +1,53 @@
-﻿using System.Resources;
-using GameOfLife.Components;
+﻿using GameOfLife.Components;
+using NUnit.Framework;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
-using Unity.Mathematics;
-using Unity.Transforms;
 using UnityEngine;
 using Grid = GameOfLife.Components.Grid;
 using Random = Unity.Mathematics.Random;
 
 namespace GameOfLife.Systems
 {
-    
     public partial struct SpawnGrid : ISystem
     {
+        private EntityQuery _cellQuery;
+        private EntityArchetype _cellCreateArchetype;
+
         public void OnCreate(ref SystemState state)
         {
-            state.RequireForUpdate<Grid>();
+            var requiredQuery = new EntityQueryBuilder(Allocator.Temp).WithAll<Grid, RebuildGrid>()
+                .Build(state.EntityManager);
+            state.RequireForUpdate(requiredQuery);
+            _cellQuery = new EntityQueryBuilder(Allocator.Temp).WithAll<Cell>().Build(state.EntityManager);
+            _cellCreateArchetype = state.EntityManager.CreateArchetype(
+                typeof(Cell),
+                typeof(IsAlive)
+            );
         }
 
         [BurstCompile]
         public void OnUpdate(ref SystemState state)
         {
-            var grid = SystemAPI.GetSingleton<Grid>();
-            var rng = new Random(grid.Seed);
             var gridEntity = SystemAPI.GetSingletonEntity<Grid>();
+            var grid = SystemAPI.GetSingleton<Grid>();
 
-            var builder = new BlobBuilder(Allocator.Temp);
-            ref GridCellRendererLookup cellRendererLookup = ref builder.ConstructRoot<GridCellRendererLookup>();
-            var length = grid.Dimensions.x * grid.Dimensions.y;
-            BlobBuilderArray<GridCellRendererLookupCell> arrayBuilder = builder.Allocate(
-                ref cellRendererLookup.Cells, length
-            );
-            var width = grid.Dimensions.x;
-            var height = grid.Dimensions.y;
-            var padding = grid.Padding;
-            var cellPrefab = grid.CellPrefab;
-            for (var x = 0; x < width; x++)
+            state.EntityManager.DestroyEntity(_cellQuery);
+            state.EntityManager.CreateEntity(_cellCreateArchetype, grid.Dimensions.x * grid.Dimensions.y);
+
+            var rng = new Random(grid.Seed);
+
+            int index = 0;
+            foreach (var (cell, isAlive) in SystemAPI.Query<RefRW<Cell>, RefRW<IsAlive>>())
             {
-                for (var y = 0; y < height; y++)
-                {
-                    var rendererEntity = state.EntityManager.Instantiate(cellPrefab);
-                    state.EntityManager.SetComponentData(rendererEntity, new LocalTransform
-                    {
-                        Position = new float3(x + x * padding, y + y * padding, 0),
-                        Rotation = Quaternion.identity,
-                        Scale = 1
-                    });
-
-                    var cellEntity = state.EntityManager.CreateEntity();
-                    state.EntityManager.AddComponentData(cellEntity, new Cell { IsAlive = rng.NextFloat(0f,1f) > grid.RandomSpawnThreshold, CellIndex =y * width + x});
-                    
-                    var cell = new GridCellRendererLookupCell
-                    {
-                        RendererEntity = rendererEntity,
-                        CellEntity = cellEntity
-                    };
-
-                    arrayBuilder[y * width + x] = cell;
-                }
+                cell.ValueRW.CellIndex = index;
+                isAlive.ValueRW.Value = rng.NextInt(0, 101) >  grid.RandomSpawnThreshold;
+                index++;
             }
 
-            var blobRef = builder.CreateBlobAssetReference<GridCellRendererLookup>(Allocator.Persistent);
-            builder.Dispose();
-            grid.Cells = blobRef;
-            state.EntityManager.SetComponentData(gridEntity, grid);
-            state.Enabled = false;
+
+            state.EntityManager.AddComponent<RunSimulation>(gridEntity);
+            state.EntityManager.RemoveComponent<RebuildGrid>(gridEntity);
         }
     }
 }

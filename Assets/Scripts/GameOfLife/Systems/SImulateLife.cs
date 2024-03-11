@@ -3,11 +3,14 @@ using GameOfLife.Jobs;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
-using UnityEngine.Rendering;
+using Unity.Jobs;
+using Unity.Profiling;
+using UnityEngine;
 using Grid = GameOfLife.Components.Grid;
 
 namespace GameOfLife.Systems
 {
+    [UpdateAfter(typeof(SpawnGrid))]
     public partial struct SimulateLife : ISystem
     {
         private EntityQuery _query;
@@ -15,40 +18,50 @@ namespace GameOfLife.Systems
         [BurstCompile]
         public void OnCreate(ref SystemState state)
         {
-            state.RequireForUpdate<Grid>();
-            _query = state.GetEntityQuery(ComponentType.ReadWrite<Cell>());
+            var requiredQuery = new EntityQueryBuilder(Allocator.Temp).WithAll<Grid,RunSimulation>().Build(state.EntityManager);
+            state.RequireForUpdate(requiredQuery);
+            _query = new EntityQueryBuilder(Allocator.Temp).WithAllRW<Cell, IsAlive>().Build(state.EntityManager);
+            _prepareQuery = new EntityQueryBuilder(Allocator.Temp).WithAll<Cell, IsAlive>().Build(state.EntityManager);
         }
+
+        private EntityQuery _prepareQuery;
+
+        static readonly ProfilerMarker s_PreparePerfMarker = new ProfilerMarker("SimulateLife.Perf");
+        private NativeArray<Entity> _prepareEntities;
 
         [BurstCompile]
         public void OnUpdate(ref SystemState state)
         {
+         
             var grid = SystemAPI.GetSingleton<Grid>();
-            var currentState = new NativeArray<bool>(grid.Dimensions.x * grid.Dimensions.y, Allocator.TempJob);
-            ref GridCellRendererLookup lookup = ref grid.Cells.Value;
-            for (var x = 0; x < grid.Dimensions.x; x++)
+            // Pad x and y dimentions by 1 on each side
+            var currentState = new NativeArray<int>((grid.Dimensions.x + 2) * (grid.Dimensions.y + 2), Allocator.TempJob);
+            var cells = _prepareQuery.ToComponentDataArray<Cell>(Allocator.TempJob);
+            var isAlives = _prepareQuery.ToComponentDataArray<IsAlive>(Allocator.TempJob);
+            
+            var prepareJob = new PrepareSimulationJob
             {
-                for (var y = 0; y < grid.Dimensions.y; y++)
-                {
-                    var cellEntity = lookup.Cells[y * grid.Dimensions.x + x].CellEntity;
-                    var cell = state.EntityManager.GetComponentData<Cell>(cellEntity);
-                    currentState[y * grid.Dimensions.x + x] = cell.IsAlive;
-                }
-            }
+                cellStatus = currentState,
+                cells = cells,
+                width = grid.Dimensions.x,
+                isAlives = isAlives
+            };
+            var prepHandle = prepareJob.Schedule(cells.Length, 64);
             
             var job = new SimulateCellJob
             {
                 currentState = currentState,
-                GridDimensions = grid.Dimensions
+                GridDimensions = grid.Dimensions,
             };
 
-            state.Dependency = job.ScheduleParallel(_query, state.Dependency);
+            state.Dependency = job.ScheduleParallel(_query, prepHandle);
             state.Dependency.Complete();
-            
-            var requestEntity = state.EntityManager.CreateEntity();
-            state.EntityManager.SetName(requestEntity, "RequestRendererUpdate");
-            state.EntityManager.AddComponentData(requestEntity, new RequestRendererUpdate());
 
+            var e = state.EntityManager.CreateEntity();
+            state.EntityManager.AddComponent<UpdateRenderer>(e);
             currentState.Dispose();
+            cells.Dispose();
+            isAlives.Dispose();
         }
     }
 }

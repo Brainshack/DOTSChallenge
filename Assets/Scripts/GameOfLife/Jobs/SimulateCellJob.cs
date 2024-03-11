@@ -10,70 +10,70 @@ namespace GameOfLife.Jobs
     [BurstCompile]
     public partial struct SimulateCellJob : IJobEntity
     {
-        [ReadOnly] public NativeArray<bool> currentState;
+        [ReadOnly] public NativeArray<int> currentState;
         [ReadOnly] public int2 GridDimensions;
-        
-        public void Execute(ref Cell cell)
+        [BurstCompile]
+        public void Execute(ref Cell cell, ref IsAlive isAlive)
         {
             int aliveNeighbors = 0;
-            var maxIndex = (GridDimensions.x * GridDimensions.y) - 1;
+
+            // Calculate the unpadded x and y values
+            int TotalUnpaddedWidth = GridDimensions.x; // Original Width (without padding)
+            int unpaddedY = cell.CellIndex / TotalUnpaddedWidth;
+            int unpaddedX = cell.CellIndex % TotalUnpaddedWidth;
+
+            // Pad the coordinates
+            int paddedX = unpaddedX + 1;
+            int paddedY = unpaddedY + 1;
+
+            // Calculate the padded index using the padded x and padded y values
+            int TotalWidth = GridDimensions.x + 2; // Original Width + Both Sides Padding
+            int index = paddedY * TotalWidth + paddedX;
             
-            var topIndex = cell.CellIndex - GridDimensions.x;
-            if (topIndex >= 0 && topIndex < maxIndex && currentState[topIndex])
-                aliveNeighbors++;
+            var topIndex = index - GridDimensions.x + 2;
+            aliveNeighbors += currentState[topIndex];
             
             var topLeftIndex = topIndex - 1;
-            if (topLeftIndex >= 0 && topLeftIndex < maxIndex && currentState[topLeftIndex])
-                aliveNeighbors++;
+            aliveNeighbors += currentState[topLeftIndex];
             
             var topRightIndex = topIndex + 1;
-            if (topRightIndex >= 0 && topRightIndex < maxIndex && currentState[topRightIndex])
-                aliveNeighbors++;
+            aliveNeighbors += currentState[topRightIndex];
             
-            var bottomIndex = cell.CellIndex + GridDimensions.x;
-            if (bottomIndex >= 0 && bottomIndex < maxIndex && currentState[bottomIndex])
-                aliveNeighbors++;
-            
-            var bottomLeftIndex = bottomIndex - 1;
-            if (bottomLeftIndex >= 0 && bottomLeftIndex < maxIndex && currentState[bottomLeftIndex])
-                aliveNeighbors++;
-            
-            var bottomRightIndex = bottomIndex + 1;
-            if (bottomRightIndex >= 0 && bottomRightIndex < maxIndex && currentState[bottomRightIndex])
-                aliveNeighbors++;
-            
-            var leftIndex = cell.CellIndex - 1;
-            if (leftIndex >= 0 && leftIndex < maxIndex && currentState[leftIndex])
-                aliveNeighbors++;
-            
-            var rightIndex = cell.CellIndex + 1;
-            if (rightIndex >= 0 && rightIndex < maxIndex && currentState[rightIndex])
-                aliveNeighbors++;
+            var bottomIndex = index + GridDimensions.x + 2;
+            aliveNeighbors += currentState[bottomIndex];
 
-            if (aliveNeighbors <= 1)
-            {
-                cell.IsAlive = false;
-                return;
-            }
+            var bottomLeftIndex = bottomIndex - 1;
+            aliveNeighbors += currentState[bottomLeftIndex];
+
+            var bottomRightIndex = bottomIndex + 1;
+            aliveNeighbors += currentState[bottomRightIndex];
+
+            var leftIndex = index - 1;
+            aliveNeighbors += currentState[leftIndex];
+
+            var rightIndex = index + 1;
+            aliveNeighbors += currentState[rightIndex];
+            
             // Cell is currently alive
-            if (cell.IsAlive)
+            if (isAlive.Value)
             {
+                if (aliveNeighbors <= 1)
+                {
+                    isAlive.Value = false;
+                    return;
+                }
                 if (aliveNeighbors == 2 || aliveNeighbors == 3)
                 {
-                    cell.IsAlive = true;
                     return;
                 }
 
-                if (aliveNeighbors >= 4)
-                {
-                    cell.IsAlive = false;
-                }
+                isAlive.Value = false;
             }
             else
             {
                 if (aliveNeighbors == 3)
                 {
-                    cell.IsAlive = true;
+                    isAlive.Value = true;
                 }   
             }
         }
